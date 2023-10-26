@@ -1,0 +1,45 @@
+<html><head><title="Apple Health XML parser"></head>
+<body><h1>Apple Health XML parser</h1>
+<p>Select the XML file first</p>
+
+<input type="file" id="load" accept="XML/XML" title="Select XML file">
+<a id='top'></a><pre id="file"></pre><div id='types'></div>
+<script>
+document.getElementById("load").addEventListener("change", function() {
+  var reader = new FileReader();
+  reader.readAsText(document.querySelector('input').files[0]);   
+  reader.addEventListener('load', function() {
+    parser = new DOMParser();
+    xmlDoc = parser.parseFromString(this.result,"text/xml");
+    x=xmlDoc.getElementsByTagName("Record");
+    data=[];list='';buttons='';
+    for (i = 0; i < x.length ;i++) {
+        var attType=x[i].getAttribute('type');
+        if(data[attType]==undefined){data[attType]="";data[attType]+=getAllAttributesofNode(x[i],'heading');};
+        data[attType]+=getAllAttributesofNode(x[i],'value');  
+    }
+    for(i in data){
+        type=i.replace("HKQuantityTypeIdentifier",'');
+        buttons+="<a href='#"+i+"' title='click to scroll down to "+type+" table'>"+type+"</a> <button title='click to copy table data to clipboard for pasting into Excel' onClick='copyTable(\""+i+"\")'>Copy table</button><br>";
+        list+="<h1><a id='"+i+"'>"+type+"</a> <a href='#top' title='click to return to top of page'>go to top</a></h1><table id='table"+i+"' border=1>"+data[i]+"</table>";
+    }
+    document.getElementById('types').innerHTML=buttons+"<br>"+list;
+  });   
+});
+function addCell(a){return "<td>"+a+"</td>";}
+function copyTable(i){ttext=document.getElementById("table"+i).outerHTML;navigator.clipboard.writeText(ttext);}
+function getAllAttributesofNode(x,type){
+    var a=""; var out='';
+    var att=x.attributes;
+    for(var j=0;j<att.length;j++){
+        var name=att[j].name;
+        var value=att[j].value;
+        if(name.includes("Date")){value=value.substring(0,value.indexOf("+"));}
+        if(name!="type" && name!="unit" && name!="sourceName" && name!="sourceVersion" && name!="creationDate" && name!="device"){
+            if(type=="heading"){out+="<th>"+name+"</th>";}else{out+=addCell(value);}
+        }else{if(type=="heading"){a+="<tr><td colspan=3>"+name+"="+value.replace("HKQuantityTypeIdentifier","")+"</td></tr>";}}
+    }
+    if(a!=""){a="<tr><td colspan=3><table>"+a+"</table></td></tr>";}
+    return (a+"<tr>"+out+"</tr>");
+}
+</script></body></html>
